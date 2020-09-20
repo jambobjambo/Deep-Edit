@@ -1,0 +1,9 @@
+colorama
+numpy
+pillow
+tableprint
+tensorboard
+torch
+torchvision
+torchsummary
+tqdm
