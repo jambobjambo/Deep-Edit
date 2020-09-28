@@ -67,10 +67,9 @@ class DeepEdit (Module):
             Tensor: Result image with shape (N,3,H,W) in range [-1., 1.].
         """
         batch, _, height, width = input.shape
-        input = input.clamp(min=1e-3 - 1)
         # Linear
-        input = shadows(input, 0.75)
-        input = highlights(input, -0.8)
+        #input = shadows(input, 0.75)
+        #input = highlights(input, -0.8)
         input = contrast(input, coefficients[:,0].view(-1, 1, 1, 1))
         input = exposure(input, coefficients[:,1].view(-1, 1, 1, 1))
         input = temperature(input, coefficients[:,2].view(-1, 1, 1, 1))

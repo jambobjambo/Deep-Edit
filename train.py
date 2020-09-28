@@ -34,8 +34,8 @@ args = parser.parse_args()
 # Create dataset
 set_suya_access_key(args.suya_key)
 transform = Compose([
-    Resize(1024),
-    CenterCrop(1024),
+    Resize(512),
+    CenterCrop(512),
     ToTensor(),
     Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
 ])
@@ -52,7 +52,7 @@ l1_loss = L1Loss().to(device)
 
 # Print
 print("Preparing for training:")
-summary(model, (3, 1024, 1024), batch_size=args.batch_size)
+summary(model, (3, 512, 512), batch_size=args.batch_size)
 
 # Create summary writer
 with SummaryWriter() as summary_writer:
