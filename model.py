@@ -74,7 +74,7 @@ class DeepEdit (Module):
         input = exposure(input, coefficients[:,1].view(-1, 1, 1, 1))
         input = temperature(input, coefficients[:,2].view(-1, 1, 1, 1))
         input = tint(input, coefficients[:,3].view(-1, 1, 1, 1))
-        input = clarity(input, coefficients[:,4].view(-1, 1, 1, 1))
+        #input = clarity(input, coefficients[:,4].view(-1, 1, 1, 1))
         # Selective color
         sat_weight = coefficients[:,5:8].view(batch, 3, 1, 1).expand(-1, -1, height, width)
         lum_weight = coefficients[:,8:11].view(batch, 3, 1, 1).expand(-1, -1, height, width)
