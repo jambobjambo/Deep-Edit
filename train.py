@@ -28,7 +28,7 @@ parser.add_argument("--tag", type=str, required=True, help="Dataset tag on Suya"
 parser.add_argument("--suya-key", type=str, required=False, default=None, help="Suya access key")
 parser.add_argument("--learning-rate", type=float, default=1e-4, help="Nominal learning rate")
 parser.add_argument("--epochs", type=int, default=10, help="Epochs")
-parser.add_argument("--batch-size", type=int, default=8, help="Minibatch size")
+parser.add_argument("--batch-size", type=int, default=12, help="Minibatch size")
 args = parser.parse_args()
 
 # Create dataset

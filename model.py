@@ -68,8 +68,8 @@ class DeepEdit (Module):
         """
         batch, _, height, width = input.shape
         # Linear
-        input = shadows(input, 0.75)
-        input = highlights(input, -0.8)
+        input = shadows(input, tensor(0.75).to(input.device))
+        input = highlights(input, tensor(-0.8).to(input.device))
         input = contrast(input, coefficients[:,0].view(-1, 1, 1, 1))
         input = exposure(input, coefficients[:,1].view(-1, 1, 1, 1))
         input = temperature(input, coefficients[:,2].view(-1, 1, 1, 1))
@@ -81,7 +81,7 @@ class DeepEdit (Module):
         exp_weight = zeros_like(sat_weight)
         input = selective_color(input, self.basis, exp_weight, sat_weight, lum_weight)
         # Vignette
-        mask = 1. - radial_gradient(input, 2.5)
+        mask = 1. - radial_gradient(input, tensor(2.5).to(input.device))
         input = exposure(input, mask * coefficients[:,11].view(-1, 1, 1, 1))
         return input
 
