@@ -76,11 +76,11 @@ class DeepEdit (Module):
         input = highlights(input, self.x_h)
         # Linear
         x_0, x_1, x_2, x_3, x_4, x_5 = linear_weights.split(1, dim=1)
-        input = contrast(input, x_0)
+        input = contrast(input, x_0) # We should clamp this so it's not too strong
         input = exposure(input, x_1)
         input = temperature(input, x_2)
         input = tint(input, x_3)
-        input = clarity(input, x_4)
+        #input = clarity(input, x_4.clamp(min=0.)) # This should likely be fixed function
         # Selective color
         x_selective = selective_weights.view(-1, 3, 2)              # Nx3x2
         x_selective_lum = self.selective_lum.repeat(batch, 1, 1)    # Nx3x1
