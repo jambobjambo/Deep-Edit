@@ -5,7 +5,7 @@
 
 from plasma.filters import clarity, contrast, exposure, highlights, selective_color, shadows, temperature, tint
 from plasma.filters.functional import radial_gradient
-from torch import tensor, zeros_like, Tensor
+from torch import cat, tensor, zeros, zeros_like, Tensor
 from torch.nn import Linear, Module, ReLU, Sequential, Tanh
 from torch.nn.functional import interpolate
 from torchvision.models import resnet34
@@ -28,17 +28,20 @@ class DeepEdit (Module):
             Linear(64, 12),
             Tanh()
         )
-        # Selective color
-        basis = tensor([
-            [255., 165., 0.],   # orange
-            [255., 255., 0.],   # yellow
-            [0., 255., 0.]      # green
-        ]) / 255.
-        self.register_buffer("basis", basis)
+        # Constant buffers
+        self.register_buffer("x_s", tensor(0.75))
+        self.register_buffer("x_h", tensor(-0.8))
+        self.register_buffer("v_r", tensor(2.5))
+        self.register_buffer("selective_lum", zeros(1, 3, 1))
+        self.register_buffer("basis", tensor([
+            [1.0, 0.65, 0.0],   # orange
+            [1.0, 1.0, 0.0],    # yellow
+            [0.0, 1.0, 0.0]     # green
+        ]))
 
     def forward (self, input: Tensor) -> Tensor:
         weights = self.coefficients(input)
-        result = self.edit(input, weights)
+        result = self.filter(input, weights)
         return result
 
     def coefficients (self, input: Tensor) -> Tensor:
@@ -55,34 +58,37 @@ class DeepEdit (Module):
         weights = self.model(input)
         return weights
 
-    def edit (self, input: Tensor, coefficients: Tensor) -> Tensor:
+    def filter (self, input: Tensor, weights: Tensor) -> Tensor:
         """
         Apply editing forward model.
 
         Parameters:
             input (Tensor): Input image with shape (N,3,H,W) in range [-1., 1.].
-            coefficients (Tensor): Editing coefficients with shape (N,3) in [-1., 1.].
+            weights (Tensor): Editing coefficients with shape (M,3) in [-1., 1.].
         
         Returns:
-            Tensor: Result image with shape (N,3,H,W) in range [-1., 1.].
+            Tensor: Filtered image with shape (N,3,H,W) in range [-1., 1.].
         """
-        batch, _, height, width = input.shape
+        batch, _, _, _ = input.shape
+        linear_weights, selective_weights = weights[:,:6], weights[:,6:]
+        # Fixed
+        input = shadows(input, self.x_s)
+        input = highlights(input, self.x_h)
         # Linear
-        input = shadows(input, tensor(0.75).to(input.device))
-        input = highlights(input, tensor(-0.8).to(input.device))
-        input = contrast(input, coefficients[:,0].view(-1, 1, 1, 1))
-        input = exposure(input, coefficients[:,1].view(-1, 1, 1, 1))
-        input = temperature(input, coefficients[:,2].view(-1, 1, 1, 1))
-        input = tint(input, coefficients[:,3].view(-1, 1, 1, 1))
-        input = clarity(input, coefficients[:,4].view(-1, 1, 1, 1))
+        x_0, x_1, x_2, x_3, x_4, x_5 = linear_weights.split(1, dim=1)
+        input = contrast(input, x_0)
+        input = exposure(input, x_1)
+        input = temperature(input, x_2)
+        input = tint(input, x_3)
+        input = contrast(input, x_4) # CHECK # Should this be fixed function??
         # Selective color
-        sat_weight = coefficients[:,5:8].view(batch, 3, 1, 1).expand(-1, -1, height, width)
-        lum_weight = coefficients[:,8:11].view(batch, 3, 1, 1).expand(-1, -1, height, width)
-        exp_weight = zeros_like(sat_weight)
-        input = selective_color(input, self.basis, exp_weight, sat_weight, lum_weight)
-        # Vignette
-        mask = 1. - radial_gradient(input, tensor(2.5).to(input.device))
-        input = exposure(input, mask * coefficients[:,11].view(-1, 1, 1, 1))
+        x_selective = selective_weights.view(-1, 3, 2)              # Nx3x2
+        x_selective_lum = self.selective_lum.repeat(batch, 1, 1)    # Nx3x1
+        x_selective = cat([x_selective, x_selective_lum], dim=2)    # Nx3x3
+        input = selective_color(input, self.basis, x_selective)
+        # Vignette # INCOMPLETE
+        # mask = 1. - radial_gradient(input, self.v_r)
+        # input = exposure(input, mask * coefficients[:,11].view(-1, 1, 1, 1))
         return input
 
     
