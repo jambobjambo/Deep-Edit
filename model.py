@@ -3,7 +3,7 @@
 #   Copyright (c) 2020 Homedeck, LLC.
 #
 
-from plasma.filters import clarity, contrast, exposure, highlights, selective_color, shadows, temperature, tint
+from plasma.filters import contrast, exposure, highlights, selective_color, shadows, temperature, tint
 from plasma.filters.functional import radial_gradient
 from torch import cat, tensor, zeros, zeros_like, Tensor
 from torch.nn import Linear, Module, ReLU, Sequential, Tanh
@@ -25,7 +25,7 @@ class DeepEdit (Module):
             ReLU(inplace=True),
             Linear(256, 64),
             ReLU(),
-            Linear(64, 12),
+            Linear(64, 12), # INCOMPLETE # Strip stale weights
             Tanh()
         )
         # Constant buffers
@@ -80,7 +80,6 @@ class DeepEdit (Module):
         input = exposure(input, x_1)
         input = temperature(input, x_2)
         input = tint(input, x_3)
-        #input = clarity(input, x_4.clamp(min=0.)) # This should likely be fixed function
         # Selective color
         x_selective = selective_weights.view(-1, 3, 2)              # Nx3x2
         x_selective_lum = self.selective_lum.repeat(batch, 1, 1)    # Nx3x1
