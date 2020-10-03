@@ -29,8 +29,8 @@ class DeepEdit (Module):
             Tanh()
         )
         # Constant buffers
-        self.register_buffer("x_s", tensor(0.75))
-        self.register_buffer("x_h", tensor(-0.8))
+        self.register_buffer("x_s", tensor(0.8))
+        self.register_buffer("x_h", tensor(-0.9))
         self.register_buffer("v_r", tensor(2.5))
         self.register_buffer("selective_lum", zeros(1, 3, 1))
         self.register_buffer("basis", tensor([
@@ -80,7 +80,7 @@ class DeepEdit (Module):
         input = exposure(input, x_1)
         input = temperature(input, x_2)
         input = tint(input, x_3)
-        input = contrast(input, x_4) # CHECK # Should this be fixed function??
+        input = clarity(input, x_4)
         # Selective color
         x_selective = selective_weights.view(-1, 3, 2)              # Nx3x2
         x_selective_lum = self.selective_lum.repeat(batch, 1, 1)    # Nx3x1
