@@ -25,7 +25,7 @@ class DeepEdit (Module):
             ReLU(inplace=True),
             Linear(256, 64),
             ReLU(),
-            Linear(64, 12), # INCOMPLETE # Strip stale weights
+            Linear(64, 10),
             Tanh()
         )
         # Constant buffers
@@ -40,11 +40,11 @@ class DeepEdit (Module):
         ]))
 
     def forward (self, input: Tensor) -> Tensor:
-        weights = self.coefficients(input)
+        weights = self.weights(input)
         result = self.filter(input, weights)
         return result
 
-    def coefficients (self, input: Tensor) -> Tensor:
+    def weights (self, input: Tensor) -> Tensor:
         """
         Compute the editing coefficients for a given image.
 
@@ -70,12 +70,12 @@ class DeepEdit (Module):
             Tensor: Filtered image with shape (N,3,H,W) in range [-1., 1.].
         """
         batch, _, _, _ = input.shape
-        linear_weights, selective_weights = weights[:,:6], weights[:,6:]
+        linear_weights, selective_weights = weights[:,:4], weights[:,4:]
         # Fixed
         input = shadows(input, self.x_s)
         input = highlights(input, self.x_h)
         # Linear
-        x_0, x_1, x_2, x_3, x_4, x_5 = linear_weights.split(1, dim=1)
+        x_0, x_1, x_2, x_3 = linear_weights.split(1, dim=1)
         input = contrast(input, x_0) # We should clamp this so it's not too strong
         input = exposure(input, x_1)
         input = temperature(input, x_2)
@@ -85,9 +85,6 @@ class DeepEdit (Module):
         x_selective_lum = self.selective_lum.repeat(batch, 1, 1)    # Nx3x1
         x_selective = cat([x_selective, x_selective_lum], dim=2)    # Nx3x3
         input = selective_color(input, self.basis, x_selective)
-        # Vignette # INCOMPLETE
-        # mask = 1. - radial_gradient(input, self.v_r)
-        # input = exposure(input, mask * coefficients[:,11].view(-1, 1, 1, 1))
         return input
 
     
