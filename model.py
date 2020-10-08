@@ -4,7 +4,6 @@
 #
 
 from plasma.filters import contrast, exposure, highlights, selective_color, shadows, temperature, tint
-from plasma.filters.functional import radial_gradient
 from torch import cat, tensor, zeros, zeros_like, Tensor
 from torch.nn import Linear, Module, ReLU, Sequential, Tanh
 from torch.nn.functional import interpolate
