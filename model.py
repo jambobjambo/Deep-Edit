@@ -3,7 +3,7 @@
 #   Copyright (c) 2020 Homedeck, LLC.
 #
 
-from plasma.filters import contrast, exposure, highlights, selective_color, shadows, temperature, tint
+from plasma.filters import highlights, selective_color, shadows, temperature, tint, tone_curve
 from torch import cat, tensor, zeros, zeros_like, Tensor
 from torch.nn import Linear, Module, ReLU, Sequential, Tanh
 from torch.nn.functional import interpolate
@@ -24,13 +24,14 @@ class DeepEdit (Module):
             ReLU(inplace=True),
             Linear(256, 64),
             ReLU(),
-            Linear(64, 10),
+            Linear(64, 11),
             Tanh()
         )
         # Constant buffers
         self.register_buffer("x_s", tensor(0.8))
         self.register_buffer("x_h", tensor(-0.9))
         self.register_buffer("v_r", tensor(2.5))
+        self.register_buffer("t_0", tensor(-1.))
         self.register_buffer("selective_lum", zeros(1, 3, 1))
         self.register_buffer("basis", tensor([
             [1.0, 0.65, 0.0],   # orange
@@ -51,7 +52,7 @@ class DeepEdit (Module):
             input (Tensor): Input image with shape (N,3,H,W) in range [-1., 1.].
 
         Returns:
-            Tensor: Editing coefficients with shape (N,12) in range [-1., 1.].
+            Tensor: Editing coefficients with shape (N,11) in range [-1., 1.].
         """
         input = interpolate(input, size=(512, 512), mode="bilinear", align_corners=False)
         weights = self.model(input)
@@ -63,22 +64,23 @@ class DeepEdit (Module):
 
         Parameters:
             input (Tensor): Input image with shape (N,3,H,W) in range [-1., 1.].
-            weights (Tensor): Editing coefficients with shape (M,3) in [-1., 1.].
+            weights (Tensor): Editing coefficients with shape (N,11) in [-1., 1.].
         
         Returns:
             Tensor: Filtered image with shape (N,3,H,W) in range [-1., 1.].
         """
         batch, _, _, _ = input.shape
-        linear_weights, selective_weights = weights[:,:4], weights[:,4:]
+        tone_weights, chroma_weights, selective_weights = weights[:,:3], weights[:,3:5], weights[:,5:]
         # Fixed
         input = shadows(input, self.x_s)
         input = highlights(input, self.x_h)
-        # Linear
-        x_0, x_1, x_2, x_3 = linear_weights.split(1, dim=1)
-        input = contrast(input, x_0) # We should clamp this so it's not too strong
-        input = exposure(input, x_1)
-        input = temperature(input, x_2)
-        input = tint(input, x_3)
+        # Tone
+        controls = cat([self.t_0.expand(batch, 1), tone_weights], dim=1)
+        input = tone_curve(input, controls)
+        # Chromaticity
+        x_temp, x_tint = chroma_weights.split(1, dim=1)
+        input = temperature(input, x_temp)
+        input = tint(input, x_tint)
         # Selective color
         x_selective = selective_weights.view(-1, 3, 2)              # Nx3x2
         x_selective_lum = self.selective_lum.repeat(batch, 1, 1)    # Nx3x1
