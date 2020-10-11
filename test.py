@@ -30,7 +30,7 @@ input = Image.open(args.input)
 input = to_tensor(input).unsqueeze(dim=0).to(device)
 
 # Run forward
-weights = model.coefficients(input)
+weights = model.weights(input)
 result = model.filter(input, weights)
 
 print("Weights:", weights.squeeze(dim=0))
