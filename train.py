@@ -20,6 +20,7 @@ from torchvision.utils import make_grid
 from torchsummary import summary
 import tableprint
 
+from highlight import HighlightLoss
 from model import DeepEdit
 
 # Parse arguments
@@ -29,6 +30,7 @@ parser.add_argument("--suya-key", type=str, required=False, default=None, help="
 parser.add_argument("--learning-rate", type=float, default=1e-4, help="Nominal learning rate")
 parser.add_argument("--epochs", type=int, default=10, help="Epochs")
 parser.add_argument("--batch-size", type=int, default=12, help="Minibatch size")
+parser.add_argument("--lambda-highlight", type=float, default=2e-1, help="Highlight regularization weight")
 args = parser.parse_args()
 
 # Create dataset
@@ -49,6 +51,7 @@ optimizer = Adam(model.parameters(), lr=args.learning_rate, betas=(0.5, 0.999))
 
 # Create loss
 l1_loss = L1Loss().to(device)
+highlight_loss = HighlightLoss().to(device)
 
 # Print
 print("Preparing for training:")
@@ -78,7 +81,8 @@ with SummaryWriter() as summary_writer:
 
              # Compute losses
             loss_l1 = l1_loss(prediction, target)
-            loss_total = loss_l1
+            loss_highlight = highlight_loss(prediction, target)
+            loss_total = loss_l1 + args.lambda_highlight * loss_highlight
 
             # Backpropagate
             optimizer.zero_grad()
