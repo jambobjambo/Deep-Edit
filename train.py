@@ -92,6 +92,7 @@ with SummaryWriter() as summary_writer:
             # Log
             summary_writer.add_scalar("Deep Edit/Total Loss", loss_total, iteration_index)
             summary_writer.add_scalar("Deep Edit/L1 Loss", loss_l1, iteration_index)
+            summary_writer.add_scalar("Deep Edit/Highlight Loss", loss_highlight, iteration_index)
             LOG_DATA = [
                 f"{iteration_index}",
                 f"{epoch}",
@@ -102,7 +103,7 @@ with SummaryWriter() as summary_writer:
             iteration_index += 1
 
         # Log images
-        to_grid = lambda mbatch: make_grid(mbatch.cpu(), range=(-1., 1.), normalize=True)
+        to_grid = lambda mbatch: make_grid(mbatch.cpu(), range=(-1., 1.), nrow=args.batch_size, normalize=True)
         summary_writer.add_image("Input", to_grid(input), iteration_index)
         summary_writer.add_image("Prediction", to_grid(prediction), iteration_index)
         summary_writer.add_image("Target", to_grid(target), iteration_index)
