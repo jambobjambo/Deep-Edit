@@ -24,14 +24,14 @@ class DeepEdit (Module):
             ReLU(inplace=True),
             Linear(256, 64),
             ReLU(),
-            Linear(64, 11),
+            Linear(64, 10),
             Tanh()
         )
         # Constant buffers
-        self.register_buffer("x_s", tensor(0.8))
-        self.register_buffer("x_h", tensor(-0.9))
-        self.register_buffer("v_r", tensor(2.5))
-        self.register_buffer("t_0", tensor(-1.))
+        self.register_buffer("x_s", tensor(0.8))    # shadows
+        self.register_buffer("x_h", tensor(-0.9))   # highlights
+        self.register_buffer("t_0", tensor(-1.))    # tone curve dark control point
+        self.register_buffer("t_3", tensor(1.))     # tone curve white control point
         self.register_buffer("selective_lum", zeros(1, 3, 1))
         self.register_buffer("basis", tensor([
             [1.0, 0.65, 0.0],   # orange
@@ -70,12 +70,12 @@ class DeepEdit (Module):
             Tensor: Filtered image with shape (N,3,H,W) in range [-1., 1.].
         """
         batch, _, _, _ = input.shape
-        tone_weights, chroma_weights, selective_weights = weights[:,:3], weights[:,3:5], weights[:,5:]
+        tone_weights, chroma_weights, selective_weights = weights[:,:2], weights[:,2:4], weights[:,4:]
         # Fixed
         input = shadows(input, self.x_s)
         input = highlights(input, self.x_h)
         # Tone
-        controls = cat([self.t_0.expand(batch, 1), tone_weights], dim=1)
+        controls = cat([self.t_0.expand(batch, 1), tone_weights, self.t_3.expand(batch, 1)], dim=1)
         input = tone_curve(input, controls)
         # Chromaticity
         x_temp, x_tint = chroma_weights.split(1, dim=1)
