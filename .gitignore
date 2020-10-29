@@ -23,7 +23,7 @@ torch.egg-info/
 
 # IDE
 .idea
-.vscode
+#.vscode
 
 # Jupyter
 .ipynb_checkpoints
