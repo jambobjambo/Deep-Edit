@@ -8,6 +8,7 @@ from PIL import Image
 from torch import cat, device as get_device, set_grad_enabled
 from torch.cuda import is_available as cuda_available
 from torch.jit import load
+import torch
 from torchvision.transforms import Compose, Normalize, Resize, ToPILImage, ToTensor
 from model import DeepEdit
 # Parse arguments
@@ -19,7 +20,6 @@ args = parser.parse_args()
 # Load model
 device = get_device("cuda:0") if cuda_available() else get_device("cpu")
 model = load(args.model, map_location=device).eval().to(device)
-print(model)
 set_grad_enabled(False)
 
 # Load image
@@ -31,9 +31,7 @@ input = Image.open(args.input)
 input = to_tensor(input).unsqueeze(dim=0).to(device)
 
 # Run forward
-deepedit = DeepEdit()
-weights = deepedit.weights(input)
-result = model.filter(input, weights)
+result, weights = model.forward(input)
 
 # Output
 print("Weights:", weights.squeeze(dim=0))
